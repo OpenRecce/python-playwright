@@ -1,0 +1,2 @@
+language: python-playwright-focal
+fprocess: python index.py

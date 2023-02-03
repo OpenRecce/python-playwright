@@ -4,7 +4,9 @@ OpenFaaS Python Playwright Templates
 This repository contains an OpenFaaS compatible template ready for use
 with [Playwright].
 
-[python-playwright-focal](/python-playwright-focal) is limited to python 3.8
+**[python-playwright-focal](/python-playwright-focal) is limited to python 3.8**.
+At this stage `jammy` images will compile but not fork processes correctly and
+fail. When this is resolved a `jammy` template will be created.
 
 ## Downloading the templates
 

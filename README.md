@@ -1,53 +1,19 @@
-OpenFaaS Python Flask Templates
+OpenFaaS Python Playwright Templates
 =============================================
 
-The Python Flask templates that make use of the incubator project [of-watchdog](https://github.com/openfaas-incubator/of-watchdog).
+This repository contains an OpenFaaS compatible template ready for use
+with [Playwright].
 
-Templates available in this repository:
-
-- python3-http
-- python3-http-debian (ideal for compiled dependencies like numpy, pandas, pillow)
-
-- python3-flask
-- python3-flask-debian (ideal for compiled dependencies like numpy, pandas, pillow)
-
-- python27-flask (Python 2.7 is deprecated)
-
-Notes:
-- To build and deploy a function for an ARM computer, you'll need to use `faas-cli publish --platforms`
-
-## SSH authentication for private Git repositories and Pip modules
-
-If you need to install Pip modules from private Git repositories, we provide an alternative set of templates for OpenFaaS Pro customers:
-
-* [OpenFaaS Pro templates for Python](https://github.com/openfaas/pro-templates)
-
-## Picking your template
-
-The templates named `python*-flask*` are designed as a drop-in replacement for the classic `python3` template, but using the more efficient of-watchdog. The move to use flask as an underlying framework allows for greater control over the HTTP request and response.
-
-Those templates named `python*-http*` are designed to offer full control over the HTTP request and response. Flask is used as an underlying framework.
-
-The `witness` HTTP server is used along with Flask for all templates.
-
-Are you referencing pip modules which require a native build toolchain? It's advisable to use the template with a `-debian` suffix in this case. The Debian images are larger, however they are usually more efficient for use with modules like `numpy` and `pandas`.
+**[python-playwright-focal](/python-playwright-focal) is limited to python 3.8**.
+At this stage `jammy` images will compile but not fork processes correctly and
+fail. When this is resolved a `jammy` template will be created.
 
 ## Downloading the templates
 
 Using template pull with the repository's URL:
 
 ```bash
-faas-cli template pull https://github.com/openfaas-incubator/python-flask-template
-```
-
-Using the template store:
-
-```bash
-# Either command downloads both templates
-faas-cli template store pull python3-http
-
-# Or
-faas-cli template store pull python3-flask
+faas-cli template pull https://github.com/openrecce/python-playwright
 ```
 
 Using your `stack.yml` file:
@@ -55,17 +21,17 @@ Using your `stack.yml` file:
 ```yaml
 configuration:
     templates:
-        - name: python3-http
+        - name: python-playwright-focal
 ```
 
-# Using the python3-http templates
+# Using the template
 
 Create a new function
 
 ```
-export OPENFAAS_PREFIX=alexellis2
+export OPENFAAS_PREFIX=https://github.com/openrecce/python-playwright
 export FN="tester"
-faas-cli new --lang python3-http $FN
+faas-cli new --lang python-playwright-focal $FN
 ```
 
 Build, push, and deploy
@@ -80,227 +46,23 @@ Test the new function
 echo -n content | faas-cli invoke $FN
 ```
 
-## Event and Context Data
+## Playwright specifics
 
-The function handler is passed two arguments, *event* and *context*.
+This template bundles `python-playwright` from Microsoft. The only browser available in
+this template is `webkit`. `firefox` and `chromium` may be added at a later date. The browsers are
+independently removed to reduce the already large image size.
 
-*event* contains data about the request, including:
-- body
-- headers
-- method
-- query
-- path
+With only `webkit` this image is approx 1.5GB instead of 2.1GB if all three browsers are included.
 
-*context* contains basic information about the function, including:
-- hostname
+Simply call the playwright code you've written inside the `handle` function and return the response (if needed).
 
-## Response Bodies
-
-By default, the template will automatically attempt to set the correct Content-Type header for you based on the type of response.
-
-For example, returning a dict object type will automatically attach the header `Content-Type: application/json` and returning a string type will automatically attach the `Content-Type: text/html, charset=utf-8` for you.
-
-## Example usage
-
-### Return a JSON body with a Content-Type
-
-```python
-def handle(event, context):
-    return {
-        "statusCode": 200,
-        "body": {"message": "Hello from OpenFaaS!"},
-        "headers": {
-            "Content-Type": "application/json"
-        }
-    }
-```
-
-### Custom status codes and response bodies
-
-Successful response status code and JSON response body
-```python
-def handle(event, context):
-    return {
-        "statusCode": 200,
-        "body": {
-            "key": "value"
-        }
-    }
-```
-Successful response status code and string response body
-```python
-def handle(event, context):
-    return {
-        "statusCode": 201,
-        "body": "Object successfully created"
-    }
-```
-Failure response status code and JSON error message
-```python
-def handle(event, context):
-    return {
-        "statusCode": 400,
-        "body": {
-            "error": "Bad request"
-        }
-    }
-```
-### Custom Response Headers
-Setting custom response headers
-```python
-def handle(event, context):
-    return {
-        "statusCode": 200,
-        "body": {
-            "key": "value"
-        },
-        "headers": {
-            "Location": "https://www.example.com/"
-        }
-    }
-```
-### Accessing Event Data
-Accessing request body
-```python
-def handle(event, context):
-    return {
-        "statusCode": 200,
-        "body": "You said: " + str(event.body)
-    }
-```
-Accessing request method
-```python
-def handle(event, context):
-    if event.method == 'GET':
-        return {
-            "statusCode": 200,
-            "body": "GET request"
-        }
-    else:
-        return {
-            "statusCode": 405,
-            "body": "Method not allowed"
-        }
-```
-Accessing request query string arguments
-```python
-def handle(event, context):
-    return {
-        "statusCode": 200,
-        "body": {
-            "name": event.query['name']
-        }
-    }
-```
-Accessing request headers
-```python
-def handle(event, context):
-    return {
-        "statusCode": 200,
-        "body": {
-            "content-type-received": event.headers.get('Content-Type')
-        }
-    }
-```
-
-### Example with Postgresql:
-
-stack.yml
-
-```yaml
-version: 1.0
-provider:
-  name: openfaas
-  gateway: http://127.0.0.1:8080
-functions:
-  pgfn:
-    lang: python3-http-debian
-    handler: ./pgfn
-    image: pgfn:latest
-    build_options:
-      - libpq
-```
-
-Alternatively you can specify `ADDITIONAL_PACKAGE` in the `build_args` section for the function.
-
-```yaml
-    build_args:
-      ADDITIONAL_PACKAGE: "libpq-dev gcc python3-dev"
-```
-
-requirements.txt
-
-```
-psycopg2==2.9.3
-```
-
-Create a database and table:
-
-```sql
-CREATE DATABASE main;
-
-\c main;
-
-CREATE TABLE users (
-    name TEXT,
-);
-
--- Insert the original Postgresql author's name into the test table:
-
-INSERT INTO users (name) VALUES ('Michael Stonebraker');
-```
-
-handler.py:
-
-```python
-import psycopg2
-
-def handle(event, context):
-
-    try:
-        conn = psycopg2.connect("dbname='main' user='postgres' port=5432 host='192.168.1.35' password='passwd'")
-    except Exception as e:
-        print("DB error {}".format(e))
-        return {
-            "statusCode": 500,
-            "body": e
-        }
-
-    cur = conn.cursor()
-    cur.execute("""SELECT * from users;""")
-    rows = cur.fetchall()
-
-    return {
-        "statusCode": 200,
-        "body": rows
-    }
-```
-
-Always read the secret from an OpenFaaS secret at `/var/openfaas/secrets/secret-name`. The use of environment variables is an anti-pattern and will be visible via the OpenFaaS API.
-
-# Using the python3-flask template
-
-Create a new function
-
-```
-export OPENFAAS_PREFIX=alexellis2
-export FN="tester"
-faas-cli new --lang python3-flask $FN
-```
-
-Build, push, and deploy
-
-```
-faas-cli up -f $FN.yml
-```
-
-Test the new function
-
-```
-echo -n content | faas-cli invoke $FN
-```
+The template's `stack.yml` file may need its timeouts increased above the default `10s`, usually `40s` is more than enough.
 
 ## Example of returning a string
+
+This pertains to the standard python-flask-debian image which should be used in all cases
+unless you specially need to use `python-playwright`.
+
 
 ```python
 def handle(req):
@@ -373,3 +135,5 @@ If you don't want to use `tox` at all, you can also change the test command that
 Setting the command to any other executable in the image or any scripts you have in your function.
 
 You can also set it permanently in your stack.yaml, see the [YAML reference in the docs](https://docs.openfaas.com/reference/yaml/#function-build-args-build-args).
+
+[playwright]: https://playwright.dev
